@@ -13,7 +13,15 @@ export const env = {
   mongoUri: required("DB_URI"),
   jwtSecret: required("JWT_SECRET"),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? "1d",
-  frontendOrigins: (process.env.FRONTEND_ORIGINS ?? "http://localhost:3000,http://127.0.0.1:3000")
+  frontendOrigins: (
+    process.env.FRONTEND_ORIGINS ??
+    [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "https://startling-melomakarona-316645.netlify.app",
+      "https://6af9e1738a556bda7396aa2f--startling-melomakarona-316645.netlify.app",
+    ].join(",")
+  )
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),

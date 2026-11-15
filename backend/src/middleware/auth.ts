@@ -1,32 +1,35 @@
 import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
-import type { UserRole } from "../models/User";
+import { User, type UserRole } from "../models/User";
 import { env } from "../config/env";
 
-interface TokenPayload extends jwt.JwtPayload {
-  sub: string;
-  role: UserRole;
-}
-
-export const authenticate: RequestHandler = (req, res, next) => {
+export const authenticate: RequestHandler = async (req, res, next) => {
   const [scheme, token] = (req.header("authorization") ?? "").split(" ");
   if (scheme?.toLowerCase() !== "bearer" || !token) {
     res.status(401).json({ message: "Authentication required" });
     return;
   }
 
+  let payload: string | jwt.JwtPayload;
   try {
-    const payload = jwt.verify(token, env.jwtSecret);
-    if (typeof payload === "string" || typeof payload.sub !== "string" ||
-        (payload.role !== "user" && payload.role !== "admin")) {
-      res.status(401).json({ message: "Invalid access token" });
-      return;
-    }
-    req.auth = { userId: payload.sub, role: payload.role };
-    next();
+    payload = jwt.verify(token, env.jwtSecret);
   } catch {
     res.status(401).json({ message: "Invalid or expired access token" });
+    return;
   }
+
+  if (typeof payload === "string" || typeof payload.sub !== "string") {
+    res.status(401).json({ message: "Invalid access token" });
+    return;
+  }
+
+  const user = await User.findById(payload.sub).select("role");
+  if (!user) {
+    res.status(401).json({ message: "Invalid or expired access token" });
+    return;
+  }
+  req.auth = { userId: user.id, role: user.role };
+  next();
 };
 
 export const requireRoles = (...roles: UserRole[]): RequestHandler => (req, res, next) => {

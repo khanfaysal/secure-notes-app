@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://secure-notes-app-opqi.onrender.com/api";
 const TOKEN_KEY = "secure-notes-token";
 const USER_KEY = "secure-notes-user";
 

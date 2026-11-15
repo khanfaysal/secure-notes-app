@@ -1,4 +1,6 @@
 import express from "express";
+import cors from "cors";
+import { env } from "./config/env";
 import { authRouter } from "./routes/auth";
 import { notesRouter } from "./routes/notes";
 import { postsRouter } from "./routes/posts";
@@ -6,6 +8,7 @@ import { usersRouter } from "./routes/users";
 
 export const app = express();
 
+app.use(cors({ origin: env.frontendOrigins }));
 app.use(express.json({ limit: "100kb" }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 app.use("/api/auth", authRouter);

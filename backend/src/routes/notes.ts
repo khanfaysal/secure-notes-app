@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Types } from "mongoose";
 import { authenticate, requireRoles } from "../middleware/auth";
 import { Note } from "../models/Note";
+import { parsePagination } from "../utils/pagination";
 
 export const notesRouter = Router();
 
@@ -22,9 +23,25 @@ const serializeNote = (note: {
 });
 
 notesRouter.get("/", authenticate, requireRoles("user", "admin"), async (req, res) => {
+  const pagination = parsePagination(req.query.page, req.query.limit);
+  if (!pagination) {
+    res.status(400).json({ message: "page and limit must be positive integers; limit cannot exceed 100" });
+    return;
+  }
+
   const filter = req.auth!.role === "admin" ? {} : { owner: req.auth!.userId };
-  const notes = await Note.find(filter).sort({ createdAt: -1 });
-  res.json({ notes: notes.map(serializeNote) });
+  const notes = await Note.find(filter)
+    .sort({ createdAt: -1, _id: -1 })
+    .skip(pagination.skip)
+    .limit(pagination.limit + 1);
+  const hasMore = notes.length > pagination.limit;
+  if (hasMore) {
+    notes.pop();
+  }
+  res.json({
+    notes: notes.map(serializeNote),
+    pagination: { page: pagination.page, limit: pagination.limit, hasMore },
+  });
 });
 
 notesRouter.post("/", authenticate, requireRoles("user", "admin"), async (req, res) => {
